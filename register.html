@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Register - Melon Hardware</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: #f1f5f9;
+            position: relative;
+            overflow: hidden;
+        }
+        body::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #e0e7ff 0%, #f1f5f9 50%, #ddd6fe 100%);
+        }
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.4;
+            animation: orbFloat 12s ease-in-out infinite;
+        }
+        .orb1 {
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, #60a5fa, transparent);
+            top: -100px;
+            right: -100px;
+        }
+        @keyframes orbFloat {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(-40px, 40px) scale(1.1); }
+        }
+        .auth-container {
+            width: 100%;
+            max-width: 500px;
+            position: relative;
+            z-index: 10;
+        }
+        .auth-card {
+            background: #ffffff;
+            border-radius: 24px;
+            padding: 45px 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            animation: cardEntrance 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        @keyframes cardEntrance {
+            from { opacity: 0; transform: translateY(30px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .auth-header { text-align: center; margin-bottom: 35px; }
+        .shop-logo {
+            width: 90px;
+            height: 90px;
+            margin: 0 auto 20px;
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            box-shadow: 0 10px 30px rgba(59, 130, 246, 0.3);
+            animation: logoPulse 3s ease-in-out infinite;
+        }
+        @keyframes logoPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        .auth-header h1 {
+            font-size: 32px;
+            margin: 0 0 8px 0;
+            color: #0f172a;
+            font-weight: 800;
+            letter-spacing: -1px;
+        }
+        .auth-header p { color: #64748b; font-size: 15px; margin: 0; font-weight: 500; }
+        
+        .step-progress {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 30px;
+        }
+        .step {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .step-circle {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #e2e8f0;
+            color: #94a3b8;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+            transition: 0.3s;
+        }
+        .step.active .step-circle {
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            color: white;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+        }
+        .step.completed .step-circle {
+            background: #10b981;
+            color: white;
+        }
+        .step-line {
+            width: 40px;
+            height: 2px;
+            background: #e2e8f0;
+        }
+        .step.completed + .step .step-line {
+            background: #10b981;
+        }
+        
+        .step-content { display: none; }
+        .step-content.active { display: block; animation: fadeInUp 0.5s; }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .google-btn {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, #4285F4 0%, #34A853 100%);
+            border: none;
+            border-radius: 16px;
+            color: #fff;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            box-shadow: 0 8px 20px rgba(66, 133, 244, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .google-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 35px rgba(66, 133, 244, 0.4);
+        }
+        .google-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: left 0.5s;
+        }
+        .google-btn:hover::before { left: 100%; }
+        .google-icon {
+            width: 24px;
+            height: 24px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4px;
+        }
+        .google-icon svg { width: 100%; height: 100%; }
+        
+        .dev-btn {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+            border: none;
+            border-radius: 16px;
+            color: #fff;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.3s;
+            box-shadow: 0 8px 20px rgba(139, 92, 246, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+        .dev-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 35px rgba(139, 92, 246, 0.4);
+        }
+        
+        .input-group {
+            position: relative;
+            margin-bottom: 20px;
+            animation: fadeInUp 0.5s backwards;
+        }
+        .input-group:nth-child(1) { animation-delay: 0.1s; }
+        .input-group:nth-child(2) { animation-delay: 0.2s; }
+        .input-group:nth-child(3) { animation-delay: 0.3s; }
+        .input-group:nth-child(4) { animation-delay: 0.4s; }
+        .input-group:nth-child(5) { animation-delay: 0.5s; }
+        .input-group input, .input-group textarea {
+            width: 100%;
+            padding: 16px 18px;
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 14px;
+            color: #0f172a;
+            font-size: 15px;
+            font-family: 'Inter', sans-serif;
+            outline: none;
+            transition: 0.3s;
+        }
+        .input-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        .input-group label {
+            position: absolute;
+            left: 18px;
+            top: 17px;
+            color: #94a3b8;
+            pointer-events: none;
+            transition: 0.3s ease;
+            background: #f8fafc;
+            padding: 0 6px;
+        }
+        .input-group input:focus,
+        .input-group input:valid,
+        .input-group textarea:focus,
+        .input-group textarea:valid {
+            border-color: #3b82f6;
+            background: #ffffff;
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+        }
+        .input-group input:focus + label,
+        .input-group input:valid + label,
+        .input-group textarea:focus + label,
+        .input-group textarea:valid + label {
+            top: -9px;
+            left: 14px;
+            font-size: 12px;
+            color: #3b82f6;
+            background: #ffffff;
+            font-weight: 600;
+        }
+        
+        .btn-submit {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            border: none;
+            border-radius: 16px;
+            color: #fff;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
+            margin-top: 10px;
+        }
+        .btn-submit:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 35px rgba(59, 130, 246, 0.4);
+        }
+        .btn-submit::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: left 0.5s;
+        }
+        .btn-submit:hover::before { left: 100%; }
+        
+        .user-info {
+            background: #f1f5f9;
+            border-radius: 14px;
+            padding: 16px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .user-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 20px;
+        }
+        .user-details h4 {
+            font-size: 15px;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 2px;
+        }
+        .user-details p {
+            font-size: 13px;
+            color: #64748b;
+        }
+        
+        .back-link {
+            text-align: center;
+            margin-top: 24px;
+        }
+        .back-link a {
+            color: #3b82f6;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 15px;
+            transition: 0.3s;
+        }
+        .back-link a:hover { color: #2563eb; }
+        
+        .loading-spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        button.loading .btn-text { display: none; }
+        button.loading .loading-spinner { display: block; }
+        
+        @media (max-width: 480px) {
+            .auth-card { padding: 35px 28px; }
+            .auth-header h1 { font-size: 28px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="orb orb1"></div>
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <div class="shop-logo">🏪</div>
+                <h1>Register Shop</h1>
+                <p>Start managing your business today</p>
+            </div>
+            
+            <div class="step-progress">
+                <div class="step active" id="step1Indicator">
+                    <div class="step-circle">1</div>
+                </div>
+                <div class="step-line"></div>
+                <div class="step" id="step2Indicator">
+                    <div class="step-circle">2</div>
+                </div>
+            </div>
+            
+            <div class="step-content active" id="step1">
+                <button onclick="loginWithGoogle()" id="googleLoginBtn" class="google-btn">
+                    <span class="google-icon">
+                        <svg viewBox="0 0 24 24">
+                            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                        </svg>
+                    </span>
+                    <span class="btn-text">Continue with Google</span>
+                    <div class="loading-spinner"></div>
+                </button>
+                
+                <button onclick="devLogin()" class="dev-btn">
+                    <span>⚡</span>
+                    <span class="btn-text">Dev Mode (Skip Google)</span>
+                </button>
+                
+                <div class="back-link">
+                    <a href="login.html">← Back to Login</a>
+                </div>
+            </div>
+            
+            <div class="step-content" id="step2">
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar">U</div>
+                    <div class="user-details">
+                        <h4 id="userName">User Name</h4>
+                        <p id="userEmail">user@email.com</p>
+                    </div>
+                </div>
+                
+                <form id="registerForm">
+                    <div class="input-group">
+                        <input type="text" id="shopName" required>
+                        <label>Shop Name *</label>
+                    </div>
+                    <div class="input-group">
+                        <input type="text" id="ownerName" required>
+                        <label>Owner Name *</label>
+                    </div>
+                    <div class="input-group">
+                        <input type="tel" id="shopPhone" required>
+                        <label>Phone Number *</label>
+                    </div>
+                    <div class="input-group">
+                        <textarea id="shopAddress" required></textarea>
+                        <label>Shop Address *</label>
+                    </div>
+                    <div class="input-group">
+                        <input type="text" id="upiId">
+                        <label>UPI ID (Optional)</label>
+                    </div>
+                    <button type="submit" class="btn-submit">
+                        <span class="btn-text">Complete Registration</span>
+                        <div class="loading-spinner"></div>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+        <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyDQOR7tuWvX_ysKUOQcMnAbtVLLMIQzHEI",
+            authDomain: "shop-ff6e6.firebaseapp.com",
+            projectId: "shop-ff6e6",
+            storageBucket: "shop-ff6e6.firebasestorage.app",
+            messagingSenderId: "282249658606",
+            appId: "1:282249658606:web:9bd31f378935795f52b3ff"
+        };
+        try { firebase.initializeApp(firebaseConfig); } catch(e) {}
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        
+        let currentUser = null;
+        let isDevMode = false;
+        
+        // Step 1: Google Login - Firebase use korbe
+        async function loginWithGoogle() {
+            const btn = document.getElementById('googleLoginBtn');
+            btn.classList.add('loading');
+            
+            let provider = new firebase.auth.GoogleAuthProvider();
+            provider.setCustomParameters({ prompt: 'select_account' });
+            
+            try {
+                let result = await auth.signInWithPopup(provider);
+                currentUser = result.user;
+                isDevMode = false;
+                
+                // Check if already registered
+                const shopDoc = await db.collection("shops").doc(currentUser.uid).get();
+                if(shopDoc.exists && shopDoc.data().registered) {
+                    alert('✅ Shop already registered! Redirecting to dashboard...');
+                    localStorage.setItem("loginType", "google");
+                    localStorage.setItem("userUID", currentUser.uid);
+                    localStorage.setItem("shopDetails", JSON.stringify(shopDoc.data()));
+                    location.href = 'index.html';
+                    return;
+                }
+                
+                goToStep2();
+            } catch(err) {
+                alert('❌ Login failed: ' + err.message);
+                btn.classList.remove('loading');
+            }
+        }
+        
+        // Dev Mode - Firebase use korbe NA, only LocalStorage
+        function devLogin() {
+            if(!confirm("⚡ Dev Mode (Test Mode)\n\nThis uses LocalStorage only!\nNo Firebase data will be used.\nContinue?")) return;
+            
+            currentUser = {
+                email: 'dev@test.com',
+                displayName: 'Developer',
+                uid: 'dev_' + Date.now()
+            };
+            isDevMode = true;
+            
+            // Check if already registered in LocalStorage
+            const savedShop = localStorage.getItem("shopDetails");
+            if(savedShop) {
+                const shopData = JSON.parse(savedShop);
+                if(shopData.registered && localStorage.getItem("loginType") === "dev") {
+                    alert('✅ Dev Shop already registered! Redirecting...');
+                    location.href = 'index.html';
+                    return;
+                }
+            }
+            
+            goToStep2();
+        }
+        
+        // Go to Step 2
+        function goToStep2() {
+            document.getElementById('step1').classList.remove('active');
+            document.getElementById('step2').classList.add('active');
+            document.getElementById('step1Indicator').classList.add('completed');
+            document.getElementById('step1Indicator').classList.remove('active');
+            document.getElementById('step2Indicator').classList.add('active');
+            
+            // Show user info
+            document.getElementById('userName').textContent = currentUser.displayName || 'User';
+            document.getElementById('userEmail').textContent = currentUser.email;
+            document.getElementById('userAvatar').textContent = (currentUser.displayName || 'U').charAt(0).toUpperCase();
+        }
+        
+        // Step 2: Register Shop Details
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = e.target.querySelector('.btn-submit');
+            btn.classList.add('loading');
+            
+            const shopData = {
+                shopName: document.getElementById('shopName').value.trim(),
+                ownerName: document.getElementById('ownerName').value.trim(),
+                shopPhone: document.getElementById('shopPhone').value.trim(),
+                shopAddress: document.getElementById('shopAddress').value.trim(),
+                upiId: document.getElementById('upiId').value.trim() || '',
+                registered: true,
+                createdAt: new Date().toISOString(),
+                userEmail: currentUser.email,
+                userName: currentUser.displayName || ''
+            };
+            
+            try {
+                if(isDevMode) {
+                    // DEV MODE - Only LocalStorage
+                    localStorage.setItem("shopUser", currentUser.email);
+                    localStorage.setItem("shopRegistered", "true");
+                    localStorage.setItem("shopDetails", JSON.stringify(shopData));
+                    localStorage.setItem("loginType", "dev");
+                    localStorage.setItem("userUID", currentUser.uid);
+                    
+                    // Initialize empty data
+                    if(!localStorage.getItem("customers")) localStorage.setItem("customers", "[]");
+                    if(!localStorage.getItem("inventory")) localStorage.setItem("inventory", "[]");
+                    if(!localStorage.getItem("sales")) localStorage.setItem("sales", "[]");
+                    if(!localStorage.getItem("payments")) localStorage.setItem("payments", "[]");
+                    
+                    alert('✅ Dev Shop Registered Successfully!\n\n(LocalStorage Mode)');
+                    location.href = 'index.html';
+                } else {
+                    // GOOGLE MODE - Firebase + LocalStorage
+                    await db.collection("shops").doc(currentUser.uid).set({
+                        ...shopData,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    
+                    // Cache to LocalStorage
+                    localStorage.setItem("shopUser", currentUser.email);
+                    localStorage.setItem("shopRegistered", "true");
+                    localStorage.setItem("shopDetails", JSON.stringify(shopData));
+                    localStorage.setItem("loginType", "google");
+                    localStorage.setItem("userUID", currentUser.uid);
+                    
+                    // Initialize empty collections in Firebase
+                    const batch = db.batch();
+                    const collections = ['customers', 'inventory', 'sales', 'payments'];
+                    for(let col of collections) {
+                        const initDoc = db.collection('shops').doc(currentUser.uid).collection(col).doc('_init');
+                        batch.set(initDoc, { createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+                    }
+                    await batch.commit();
+                    
+                    alert('✅ Shop Registered Successfully!\n\n(Synced to Firebase)');
+                    location.href = 'index.html';
+                }
+            } catch(err) {
+                alert('❌ Error: ' + err.message);
+                btn.classList.remove('loading');
+            }
+        });
+        
+        // Check if already logged in
+        auth.onAuthStateChanged(async user => {
+            if(user && localStorage.getItem("loginType") === "google") {
+                try {
+                    const doc = await db.collection("shops").doc(user.uid).get();
+                    if(doc.exists && doc.data().registered) {
+                        location.href = 'index.html';
+                    }
+                } catch(e) {}
+            }
+        });
+    </script>
+</body>
+</html>

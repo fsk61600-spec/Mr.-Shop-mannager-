@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Online Store</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f8fafc;
+            color: #0f172a;
+        }
+        .header {
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            color: white;
+            padding: 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+        }
+        .shop-info {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex: 1;
+        }
+        .shop-logo {
+            width: 56px;
+            height: 56px;
+            background: white;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        .shop-logo img { width: 100%; height: 100%; object-fit: cover; }
+        .shop-name { font-size: 24px; font-weight: 800; }
+        .shop-address { font-size: 13px; opacity: 0.9; font-weight: 600; }
+        .cart-btn {
+            background: white;
+            color: #3b82f6;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 12px;
+            font-weight: 800;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 16px;
+            transition: 0.3s;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        .cart-btn:hover { transform: translateY(-2px); }
+        .cart-badge {
+            background: #ef4444;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 800;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 32px 24px;
+        }
+        .search-bar {
+            width: 100%;
+            padding: 16px 20px;
+            border: 2px solid #e2e8f0;
+            border-radius: 16px;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 32px;
+            background: white;
+        }
+        .search-bar:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+        }
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 24px;
+        }
+        .product-card {
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+            transition: 0.3s;
+        }
+        .product-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+        }
+        .product-image {
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 64px;
+        }
+        .product-info {
+            padding: 20px;
+        }
+        .product-name {
+            font-size: 18px;
+            font-weight: 800;
+            margin-bottom: 8px;
+            color: #0f172a;
+        }
+        .product-stock {
+            font-size: 13px;
+            color: #10b981;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+        .product-stock.out {
+            color: #ef4444;
+        }
+        .product-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .product-price {
+            font-size: 24px;
+            font-weight: 800;
+            color: #3b82f6;
+        }
+        .add-btn {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .add-btn:hover {
+            transform: scale(1.05);
+        }
+        .add-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        /* Cart Modal */
+        .cart-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            z-index: 200;
+            align-items: center;
+            justify-content: center;
+        }
+        .cart-modal.active { display: flex; }
+        .cart-content {
+            background: white;
+            border-radius: 24px;
+            padding: 32px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .cart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+        .cart-title {
+            font-size: 24px;
+            font-weight: 800;
+        }
+        .close-btn {
+            width: 36px;
+            height: 36px;
+            border: none;
+            background: #f1f5f9;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 20px;
+        }
+        .cart-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px;
+            background: #f8fafc;
+            border-radius: 12px;
+            margin-bottom: 12px;
+        }
+        .qty-controls {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        .qty-btn {
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: #3b82f6;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 800;
+            font-size: 18px;
+        }
+        .cart-total {
+            font-size: 28px;
+            font-weight: 800;
+            text-align: right;
+            margin: 24px 0;
+            color: #3b82f6;
+        }
+        .checkout-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            border: none;
+            border-radius: 14px;
+            font-size: 18px;
+            font-weight: 800;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .checkout-btn:hover { transform: translateY(-2px); }
+        .checkout-form {
+            display: none;
+        }
+        .form-input {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 15px;
+            margin-bottom: 16px;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
+        }
+        .form-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #94a3b8;
+            grid-column: 1 / -1;
+        }
+        @media (max-width: 768px) {
+            .products-grid { grid-template-columns: 1fr 1fr; gap: 16px; }
+            .container { padding: 20px 16px; }
+            .shop-name { font-size: 18px; }
+            .cart-btn { padding: 10px 16px; font-size: 14px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <div class="shop-info">
+                <div class="shop-logo" id="shopLogo">🏪</div>
+                <div>
+                    <div class="shop-name" id="shopName">Loading...</div>
+                    <div class="shop-address" id="shopAddress"></div>
+                </div>
+            </div>
+            <button class="cart-btn" onclick="openCart()">
+                🛒 Cart <span class="cart-badge" id="cartBadge">0</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="container">
+        <input type="text" class="search-bar" id="searchInput" placeholder="🔍 Search products..." oninput="filterProducts()">
+        <div class="products-grid" id="productsGrid">
+            <div class="empty-state">Loading products...</div>
+        </div>
+    </div>
+
+    <!-- Cart Modal -->
+    <div class="cart-modal" id="cartModal">
+        <div class="cart-content">
+            <div class="cart-header">
+                <div class="cart-title">🛒 Your Cart</div>
+                <button class="close-btn" onclick="closeCart()">✕</button>
+            </div>
+            <div id="cartItems"></div>
+            <div class="cart-total" id="cartTotal">Total: ₹0</div>
+            
+            <div id="checkoutForm" class="checkout-form">
+                <input type="text" class="form-input" id="customerName" placeholder="Your Name *" required>
+                <input type="tel" class="form-input" id="customerPhone" placeholder="Phone Number *" required>
+                <textarea class="form-input" id="customerNote" placeholder="Note (optional)" rows="3"></textarea>
+                <button class="checkout-btn" onclick="placeOrder()">✅ Place Order</button>
+            </div>
+            
+            <button class="checkout-btn" id="proceedBtn" onclick="showCheckoutForm()">Proceed to Checkout</button>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyDQOR7tuWvX_ysKUOQcMnAbtVLLMIQzHEI",
+            authDomain: "shop-ff6e6.firebaseapp.com",
+            projectId: "shop-ff6e6",
+            storageBucket: "shop-ff6e6.firebasestorage.app",
+            messagingSenderId: "282249658606",
+            appId: "1:282249658606:web:9bd31f378935795f52b3ff"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        let shopId = null;
+        let shopData = {};
+        let shopOwnerId = null;
+        let inventory = [];
+        let filteredInventory = [];
+        let cart = [];
+
+        window.onload = async function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            shopId = urlParams.get('shop');
+            
+            if (!shopId) {
+                document.body.innerHTML = '<div style="text-align:center; padding:60px; font-size:20px; font-weight:800;">❌ Invalid store link</div>';
+                return;
+            }
+
+            await loadShopData();
+            await loadProducts();
+            renderProducts();
+        }
+
+        async function loadShopData() {
+            try {
+                const shops = await db.collection('shops').get();
+                let found = false;
+                shops.forEach(doc => {
+                    const data = doc.data();
+                    if (data.storeId === shopId && data.storeEnabled) {
+                        shopData = data;
+                        shopOwnerId = doc.id;
+                        found = true;
+                        document.getElementById('shopName').textContent = data.shopName || 'My Shop';
+                        document.getElementById('shopAddress').textContent = data.address || '';
+                        if (data.shopLogo) {
+                            document.getElementById('shopLogo').innerHTML = `<img src="${data.shopLogo}">`;
+                        }
+                    }
+                });
+                if (!found) {
+                    document.body.innerHTML = '<div style="text-align:center; padding:60px; font-size:20px; font-weight:800;">❌ Store not found or disabled</div>';
+                }
+            } catch(e) {
+                console.error(e);
+            }
+        }
+
+        async function loadProducts() {
+            try {
+                const snapshot = await db.collection('shops').doc(shopOwnerId)
+ .collection('inventory').get();
+                inventory = snapshot.docs
+ .filter(doc => doc.id!== '_init')
+ .map(doc => ({ id: doc.id, ...doc.data() }))
+ ;
+                filteredInventory = [...inventory];
+            } catch(e) {
+                console.error(e);
+            }
+        }
+
+        function filterProducts() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            filteredInventory = inventory.filter(item => 
+                item.name.toLowerCase().includes(query)
+            );
+            renderProducts();
+        }
+
+        function renderProducts() {
+            const grid = document.getElementById('productsGrid');
+            
+            if (filteredInventory.length === 0) {
+                grid.innerHTML = '<div class="empty-state">😔 No products available</div>';
+                return;
+            }
+
+            grid.innerHTML = filteredInventory.map(item => {
+                const inStock = (item.stock || 0) > 0;
+                return `
+                    <div class="product-card">
+                        <div class="product-image">📦</div>
+                        <div class="product-info">
+                            <div class="product-name">${item.name}</div>
+                            <div class="product-stock ${!inStock ? 'out' : ''}">
+                                ${inStock ? `✓ In Stock: ${item.stock}` : '✗ Out of Stock'}
+                            </div>
+                            <div class="product-footer">
+                                <div class="product-price">₹${item.sellPrice || item.sellingPrice || item.price || 0}</div>
+                                <button class="add-btn" onclick="addToCart('${item.id}')" ${!inStock ? 'disabled' : ''}>
+                                    ${inStock ? '+ Add' : 'Sold Out'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function addToCart(itemId) {
+            const item = inventory.find(i => i.id === itemId);
+            const existing = cart.find(c => c.id === itemId);
+            
+            if (existing) {
+                if (existing.qty < item.stock) {
+                    existing.qty++;
+                } else {
+                    showToast('Not enough stock!');
+                    return;
+                }
+            } else {
+                cart.push({ ...item, qty: 1 });
+            }
+            
+            updateCartBadge();
+            showToast('Added to cart!');
+        }
+
+        function updateCartBadge() {
+            document.getElementById('cartBadge').textContent = cart.reduce((sum, item) => sum + item.qty, 0);
+        }
+
+        function openCart() {
+            renderCart();
+            document.getElementById('cartModal').classList.add('active');
+        }
+
+        function closeCart() {
+            document.getElementById('cartModal').classList.remove('active');
+            document.getElementById('checkoutForm').style.display = 'none';
+            document.getElementById('proceedBtn').style.display = 'block';
+        }
+
+        function renderCart() {
+            const container = document.getElementById('cartItems');
+            
+            if (cart.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 40px; color: #94a3b8;">Cart is empty</div>';
+                document.getElementById('proceedBtn').style.display = 'none';
+                document.getElementById('cartTotal').textContent = 'Total: ₹0';
+                return;
+            }
+
+            container.innerHTML = cart.map(item => `
+                <div class="cart-item">
+                    <div>
+                        <div style="font-weight: 700; margin-bottom: 4px;">${item.name}</div>
+                        <div style="color: #3b82f6; font-weight: 800;">₹${item.sellPrice || item.sellingPrice || item.price || 0}</div>
+                    </div>
+                    <div class="qty-controls">
+                        <button class="qty-btn" onclick="updateQty('${item.id}', -1)">-</button>
+                        <span style="font-weight: 800; min-width: 30px; text-align: center;">${item.qty}</span>
+                        <button class="qty-btn" onclick="updateQty('${item.id}', 1)">+</button>
+                    </div>
+                </div>
+            `).join('');
+
+            const total = cart.reduce((sum, item) => sum + ((item.sellPrice || item.sellingPrice || item.price || 0) * item.qty), 0);
+            document.getElementById('cartTotal').textContent = `Total: ₹${total.toFixed(2)}`;
+            document.getElementById('proceedBtn').style.display = 'block';
+        }
+
+        function updateQty(itemId, change) {
+            const item = cart.find(c => c.id === itemId);
+            const stockItem = inventory.find(i => i.id === itemId);
+            if (item) {
+                const newQty = item.qty + change;
+                if (newQty > stockItem.stock) {
+                    showToast('Not enough stock!');
+                    return;
+                }
+                item.qty = newQty;
+                if (item.qty <= 0) {
+                    cart = cart.filter(c => c.id !== itemId);
+                }
+                updateCartBadge();
+                renderCart();
+            }
+        }
+
+        function showCheckoutForm() {
+            document.getElementById('checkoutForm').style.display = 'block';
+            document.getElementById('proceedBtn').style.display = 'none';
+        }
+
+        async function placeOrder() {
+            const name = document.getElementById('customerName').value.trim();
+            const phone = document.getElementById('customerPhone').value.trim();
+            const note = document.getElementById('customerNote').value.trim();
+
+            if (!name || !phone) {
+                alert('Please fill all required fields');
+                return;
+            }
+
+            const total = cart.reduce((sum, item) => sum + ((item.sellPrice || item.sellingPrice || item.price || 0) * item.qty), 0);
+            
+            const order = {
+                orderId: 'ORD' + Date.now(),
+                shopId: shopId,
+                shopName: shopData.shopName,
+                customerName: name,
+                customerPhone: phone,
+                customerNote: note,
+                items: cart,
+                total: total,
+                status: 'pending',
+                createdAt: new Date().toISOString()
+            };
+
+            try {
+                await db.collection('shops').doc(shopOwnerId)
+ .collection('onlineOrders').add(order);
+                
+                alert('✅ Order placed successfully! Shop will contact you soon.');
+                cart = [];
+                updateCartBadge();
+                closeCart();
+            } catch(e) {
+                alert('Error placing order. Please try again.');
+                console.error(e);
+            }
+        }
+
+        function showToast(msg) {
+            const toast = document.createElement('div');
+            toast.textContent = msg;
+            toast.style.cssText = 'position: fixed; bottom: 24px; right: 24px; background: #10b981; color: white; padding: 16px 24px; border-radius: 12px; font-weight: 700; z-index: 1000; box-shadow: 0 8px 24px rgba(0,0,0,0.2);';
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 2000);
+        }
+    </script>
+</body>
+</html>
